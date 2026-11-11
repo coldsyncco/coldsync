@@ -189,6 +189,8 @@ footer{max-width:1200px;margin:0 auto;padding:10px 22px 50px;display:flex;justif
 <span class="lbl">Early access</span>
 <h2>Be first<br>to carry it.</h2>
 <p class="s">Join the waitlist and tell us what you’d use it for. It shapes what we build.</p>
+<p class="s" id="cnt" style="display:none;margin-top:10px"></p>
+<p class="s" style="margin-top:10px"><b>Invite 3 friends, get $20 off at launch.</b> You’ll get your link right after you join.</p>
 </div>
 <form id="f">
 <label><span class="lbl">Email</span><input id="em" type="email" required autocomplete="email" placeholder="you@email.com"></label>
@@ -197,6 +199,11 @@ footer{max-width:1200px;margin:0 auto;padding:10px 22px 50px;display:flex;justif
 <label><span class="lbl">How soon would you buy</span><select id="wn"><option>As soon as it launches</option><option>Within 3 months</option><option>Just curious</option></select></label>
 <button type="submit">Join the waitlist</button>
 <div id="msg" role="status"></div>
+<div id="ref" style="display:none;text-align:center;border-top:1px solid var(--line);padding-top:16px">
+<p class="s" style="margin:0 0 10px"><b>Invite 3 friends, get $20 off.</b><br>Share your link:</p>
+<input id="rl" readonly style="width:100%;text-align:center" onclick="this.select()">
+<button type="button" id="rs" style="margin-top:10px">Share my link</button>
+</div>
 <p class="note">COLD SYNC is a product in development. Images are concept renders. No payment is taken. Cooling performance, battery life, and price are still being tested and may change.</p>
 </form>
 </section>
@@ -248,18 +255,31 @@ addEventListener('resize',function(){layout();go()});
 layout();calc();cur=target;render(cur);
 // waitlist
 var f=$('f'),msg=$('msg'),db=null;
+var ENDPOINT='https://script.google.com/macros/s/AKfycbzBlAV04UgMWXlbuO5Dr9kL4vEOyFeA8QU1D-yv8krue8gmDpWk8gfYdO8Ks2kKtUfe/exec';
 try{claude.use('db').then(function(d){db=d}).catch(function(){})}catch(e){}
+// referral: remember who sent this visitor
+var REF='';
+try{var q=new URLSearchParams(location.search).get('ref');if(q){REF=q.replace(/[^a-z0-9]/gi,'').slice(0,12);try{localStorage.setItem('cs_ref',REF)}catch(e){}}else{try{REF=localStorage.getItem('cs_ref')||''}catch(e){}}}catch(e){}
+function mk(em){var h=5381;em=em.toLowerCase();for(var i=0;i<em.length;i++)h=((h<<5)+h+em.charCodeAt(i))>>>0;return h.toString(36).slice(0,7)}
+// live counter: only shown once it is large enough to be meaningful
+try{fetch(ENDPOINT+'?action=count').then(function(r){return r.json()}).then(function(j){if(j&&j.count>=50){var c=$('cnt');c.textContent='Join '+j.count+' others on the waitlist.';c.style.display='block'}}).catch(function(){})}catch(e){}
+function showRef(code){
+var link=location.origin+location.pathname+'?ref='+code;
+$('rl').value=link;$('ref').style.display='block';
+$('rs').onclick=function(){var t='I’m on the waitlist for COLD SYNC, a backpack that keeps your water ice cold. Join with my link:';
+if(navigator.share){navigator.share({title:'COLD SYNC',text:t,url:link}).catch(function(){})}
+else{try{navigator.clipboard.writeText(t+' '+link);this.textContent='Copied!'}catch(e){$('rl').select()}}}}
 f.addEventListener('submit',function(e){
 e.preventDefault();
 var g=function(i){return $(i).value};
-var row={email:g('em').trim(),use:g('us'),price:g('pr'),when:g('wn'),at:new Date().toISOString()};
-var ENDPOINT='https://script.google.com/macros/s/AKfycbzBlAV04UgMWXlbuO5Dr9kL4vEOyFeA8QU1D-yv8krue8gmDpWk8gfYdO8Ks2kKtUfe/exec';
-if(ENDPOINT.indexOf('script.google.com')>-1){fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(row)}).then(function(){f.reset();msg.textContent='You’re on the list. Thank you!'}).catch(function(){msg.textContent='Could not save. Please try again.'});return}
-if(ENDPOINT.indexOf('http')===0){fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(row)}).then(function(r){if(!r.ok)throw 0;f.reset();msg.textContent='You’re on the list. Thank you!'}).catch(function(){msg.textContent='Could not save. Please try again.'});return}
+var em=g('em').trim(),code=mk(em);
+var row={email:em,use:g('us'),price:g('pr'),when:g('wn'),code:code,ref:(REF&&REF!==code)?REF:'',at:new Date().toISOString()};
+var ok=function(){f.reset();msg.textContent='You’re on the list. Thank you!';showRef(code)};
+var bad=function(){msg.textContent='Could not save. Please try again.'};
+if(ENDPOINT.indexOf('script.google.com')>-1){fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(row)}).then(ok).catch(bad);return}
 if(!db){msg.textContent='Sign-up is unavailable right now. Please try again later.';return}
 var id='w'+Date.now()+Math.floor(Math.random()*1000);
-try{db.doc('waitlist/'+id).set(row).then(function(){f.reset();msg.textContent='You’re on the list. Thank you!'}).catch(function(){msg.textContent='Could not save. Please try again.'})}
-catch(x){msg.textContent='Could not save. Please try again.'}
+try{db.doc('waitlist/'+id).set(row).then(ok).catch(bad)}catch(x){bad()}
 });
 })();
 </script>
