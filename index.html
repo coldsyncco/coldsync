@@ -253,7 +253,7 @@ f.addEventListener('submit',function(e){
 e.preventDefault();
 var g=function(i){return $(i).value};
 var row={email:g('em').trim(),use:g('us'),price:g('pr'),when:g('wn'),at:new Date().toISOString()};
-var ENDPOINT='PASTE_YOUR_FORM_URL_HERE';
+var ENDPOINT='https://script.google.com/macros/s/AKfycbzBlAV04UgMWXlbuO5Dr9kL4vEOyFeA8QU1D-yv8krue8gmDpWk8gfYdO8Ks2kKtUfe/exec';
 if(ENDPOINT.indexOf('script.google.com')>-1){fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(row)}).then(function(){f.reset();msg.textContent='You’re on the list. Thank you!'}).catch(function(){msg.textContent='Could not save. Please try again.'});return}
 if(ENDPOINT.indexOf('http')===0){fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(row)}).then(function(r){if(!r.ok)throw 0;f.reset();msg.textContent='You’re on the list. Thank you!'}).catch(function(){msg.textContent='Could not save. Please try again.'});return}
 if(!db){msg.textContent='Sign-up is unavailable right now. Please try again later.';return}
